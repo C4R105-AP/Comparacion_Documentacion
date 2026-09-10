@@ -1,0 +1,2 @@
+# Dependencias de ejecucion. La definicion canonica esta en pyproject.toml.
+-e .

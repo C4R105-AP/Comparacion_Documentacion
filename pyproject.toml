@@ -1,0 +1,46 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "comparador-doc"
+version = "1.0.0"
+description = "Compara carpetas de BOM e instrucciones de fabricacion por nombre de archivo."
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [{ name = "C4R105-AP" }]
+dependencies = [
+    "fastapi>=0.110",
+    "uvicorn>=0.27",
+    "python-multipart>=0.0.9",
+    "openpyxl>=3.1",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pyinstaller>=6.0",
+]
+exe = [
+    "pyinstaller>=6.0",
+]
+
+[project.scripts]
+comparador-doc = "wi_compare.__main__:main"
+
+[tool.setuptools.packages.find]
+include = ["wi_compare*"]
+
+[tool.setuptools.package-data]
+wi_compare = ["static/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]

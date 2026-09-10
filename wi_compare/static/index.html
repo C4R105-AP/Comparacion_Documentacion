@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Comparador_DOC</title>
+  <style>
+    :root {
+      --ink: #1a2421;
+      --muted: #5c6b66;
+      --line: #d5ddd8;
+      --paper: #f3f1ea;
+      --card: #fffdf8;
+      --header: #1e3a34;
+      --ok-bg: #dcefe4;
+      --warn-bg: #f7ead8;
+      --bad: #9b2c2c;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; background: var(--paper); color: var(--ink); font: 15px/1.45 "Segoe UI", system-ui, sans-serif; }
+    header { background: var(--header); color: #f4efe6; padding: 22px 28px 20px; }
+    header h1 { margin: 0; font-size: 40px; font-weight: 650; letter-spacing: -0.03em; }
+    main { max-width: 1400px; margin: 0 auto; padding: 22px 22px 64px; }
+    h2 { font-size: 15px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin: 0 0 12px; }
+    .drops { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .drop {
+      border: 1.5px dashed #8aa197;
+      background: var(--card);
+      border-radius: 10px;
+      padding: 28px;
+      text-align: center;
+      color: var(--muted);
+      cursor: pointer;
+      min-height: 92px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .drop.over, .drop:hover { border-color: var(--header); }
+    .drop.busy { cursor: wait; pointer-events: none; }
+    .drop strong { color: var(--ink); }
+    .drop-busy {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+    }
+    .drop-busy-head { display: flex; align-items: center; justify-content: center; gap: 12px; }
+    .spinner {
+      width: 22px; height: 22px;
+      border: 3px solid #c5d0c0;
+      border-top-color: var(--header);
+      border-radius: 50%;
+      animation: spin 0.75s linear infinite;
+      flex-shrink: 0;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .path-under { margin-top: 8px; }
+    input[type="text"], .search {
+      padding: 8px 10px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      font: inherit;
+      background: #fff;
+      width: 100%;
+    }
+    .search { width: 280px; }
+    button, .btn {
+      border: 0;
+      background: var(--header);
+      color: #fff;
+      padding: 9px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      font: inherit;
+    }
+    button.secondary { background: #fff; color: var(--ink); border: 1px solid var(--line); }
+    button:disabled { opacity: 0.45; cursor: not-allowed; }
+    .opts { display: flex; flex-wrap: wrap; gap: 14px 22px; align-items: center; margin-top: 14px; }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 12px; }
+    .error { color: var(--bad); margin-top: 10px; }
+    .hint { color: var(--muted); font-size: 13px; margin: 10px 0 0; }
+    .hidden { display: none !important; }
+    .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 18px 0; }
+    .stat {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px 14px;
+      cursor: pointer;
+      text-align: left;
+      color: inherit;
+      width: 100%;
+    }
+    .stat:hover { border-color: #8aa197; }
+    .stat.on { border-color: var(--header); background: var(--ok-bg); }
+    .stat.warn.on { background: var(--warn-bg); }
+    .stat b { display: block; font-size: 26px; letter-spacing: -0.03em; }
+    .stat span { color: var(--muted); font-size: 12px; }
+    .tabs { display: flex; gap: 6px; margin: 0; flex-wrap: wrap; }
+    .tabs button { background: transparent; color: var(--muted); border: 1px solid transparent; }
+    .tabs button.on { color: var(--ink); border-color: var(--line); background: var(--card); }
+    .table-bar { justify-content: flex-start; }
+    .print-actions { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+    button.print-tab {
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid var(--line);
+      padding: 9px 14px;
+    }
+    button.print-tab:hover { color: var(--ink); background: var(--card); }
+    .table-wrap {
+      overflow: auto;
+      height: 560px;
+      max-height: 560px;
+      width: 100%;
+      margin: 16px 0 0;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--card);
+    }
+    table { border-collapse: collapse; width: 100%; font-size: 13px; }
+    th, td { padding: 7px 10px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: middle; }
+    th { position: sticky; top: 0; background: #e8eee9; font-weight: 650; z-index: 1; }
+    td.mono { font-family: ui-monospace, Consolas, monospace; }
+    td.sub { color: #c45c26; font-weight: 650; }
+    span.sub { color: #c45c26; font-weight: 650; }
+    .print-banner { display: none; }
+    @media (max-width: 900px) {
+      .drops { grid-template-columns: 1fr; }
+      .stats { grid-template-columns: 1fr 1fr; }
+    }
+    @media print {
+      @page { size: A4 landscape; margin: 8mm; }
+      header, .no-print, .error { display: none !important; }
+      main { max-width: none; margin: 0; padding: 0; }
+      .print-banner { display: block; margin-bottom: 8px; }
+      .table-wrap { height: auto; max-height: none; overflow: visible; border: 0; }
+      th { position: static; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Comparador_DOC</h1>
+  </header>
+  <main>
+    <h2 class="no-print">Carpetas</h2>
+    <div class="drops no-print">
+      <div>
+        <div class="drop" id="dropBom">
+          <span id="idleBom">Arrastra aqui la carpeta de BOM o <strong>pulsa para elegirla</strong></span>
+          <span id="busyBom" class="drop-busy hidden">
+            <span class="drop-busy-head">
+              <span class="spinner" aria-hidden="true"></span>
+              <span>Leyendo nombres…</span>
+            </span>
+          </span>
+        </div>
+        <input class="path-under" id="bomPath" type="text" placeholder="Ruta de la carpeta BOM" />
+      </div>
+      <div>
+        <div class="drop" id="dropWi">
+          <span id="idleWi">Arrastra aqui la carpeta de WI o <strong>pulsa para elegirla</strong></span>
+          <span id="busyWi" class="drop-busy hidden">
+            <span class="drop-busy-head">
+              <span class="spinner" aria-hidden="true"></span>
+              <span>Leyendo nombres…</span>
+            </span>
+          </span>
+        </div>
+        <input class="path-under" id="wiPath" type="text" placeholder="Ruta de la carpeta WI" />
+      </div>
+    </div>
+    <div class="error hidden no-print" id="error"></div>
+    <div class="opts no-print">
+      <button id="btnCompare" type="button">Comparar</button>
+    </div>
+
+    <section id="results" class="hidden">
+      <h2 style="margin-top:28px">Resultado</h2>
+      <div class="stats" id="stats"></div>
+      <p class="hint" id="summary"></p>
+      <div class="row table-bar no-print">
+        <div class="tabs" id="tabs">
+          <button class="on" data-tab="faltan" type="button">Faltan WI</button>
+          <button data-tab="coinciden" type="button">Completas</button>
+          <button data-tab="sobran" type="button">WI sin BOM</button>
+          <button data-tab="sin_reconocer" type="button">No reconocidos</button>
+        </div>
+        <input class="search" id="search" placeholder="Filtrar referencia o archivo" />
+        <div class="print-actions">
+          <button class="print-tab" id="btnExcel" type="button">Descargar Excel</button>
+          <button class="print-tab" id="btnPrint" type="button">Imprimir</button>
+        </div>
+      </div>
+      <p class="print-banner" id="printBanner"></p>
+      <div class="table-wrap">
+        <table id="grid"></table>
+      </div>
+    </section>
+  </main>
+  <script>
+    const state = { result: null, tab: "faltan", bomFiles: null, wiFiles: null };
+    const $ = (id) => document.getElementById(id);
+    const showError = (msg) => {
+      const el = $("error");
+      el.textContent = msg || "";
+      el.classList.toggle("hidden", !msg);
+    };
+
+    async function api(url, opts) {
+      const res = await fetch(url, opts);
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || res.statusText);
+      return data;
+    }
+
+    function looksLikePath(s) {
+      const p = String(s || "").replace(/^"|"$/g, "").trim();
+      return /^[A-Za-z]:[\\/]/.test(p) || p.startsWith("\\\\");
+    }
+
+    function fileToWinPath(p) {
+      let s = String(p || "").trim();
+      if (!s) return "";
+      if (s.toLowerCase().startsWith("file:")) {
+        s = decodeURIComponent(s.replace(/^file:\/\/\//i, "").replace(/^file:\/\//i, ""));
+        if (/^\/[A-Za-z]:/.test(s)) s = s.slice(1);
+      }
+      s = s.replace(/\//g, "\\").replace(/^"|"$/g, "");
+      return looksLikePath(s) ? s : "";
+    }
+
+    function folderFromFiles(fileList) {
+      const files = [...fileList];
+      if (!files.length) return "";
+      const f = files.find((x) => x.path) || files[0];
+      const abs = fileToWinPath(f.path || "");
+      if (!abs) return "";
+      const rel = String(f.webkitRelativePath || "").replace(/\//g, "\\");
+      if (rel && abs.toLowerCase().endsWith(rel.toLowerCase())) {
+        return abs.slice(0, abs.length - rel.length).replace(/\\+$/, "");
+      }
+      if (rel) {
+        const root = rel.split("\\")[0];
+        const marker = "\\" + root;
+        const idx = abs.toLowerCase().lastIndexOf(marker.toLowerCase());
+        if (idx >= 0) return abs.slice(0, idx + marker.length);
+      }
+      const i = abs.lastIndexOf("\\");
+      return i > 0 ? abs.slice(0, i) : abs;
+    }
+
+    function folderFromDataTransfer(dt) {
+      const blobs = [
+        dt.getData("text/plain"),
+        dt.getData("text"),
+        dt.getData("text/uri-list"),
+        dt.getData("text/x-moz-url"),
+      ];
+      for (const raw of blobs) {
+        if (!raw) continue;
+        for (const line of raw.split(/\r?\n/)) {
+          const t = line.trim();
+          if (!t || t.startsWith("#")) continue;
+          const p = fileToWinPath(t) || (looksLikePath(t) ? t.replace(/^"|"$/g, "") : "");
+          if (p) return p;
+        }
+      }
+      return folderFromFiles(dt.files || []);
+    }
+
+    function namesFromFileList(fileList) {
+      return [...fileList].map((f) => ({
+        name: f.name,
+        relative: f.webkitRelativePath || f.name,
+      }));
+    }
+
+    function folderLabel(fileList) {
+      const rel = (fileList[0] && fileList[0].webkitRelativePath) || "";
+      return rel.split(/[/\\]/).filter(Boolean)[0] || "";
+    }
+
+    function setBusy(kind, on) {
+      const drop = $(kind === "bom" ? "dropBom" : "dropWi");
+      drop.classList.toggle("busy", !!on);
+      $(kind === "bom" ? "idleBom" : "idleWi").classList.toggle("hidden", !!on);
+      $(kind === "bom" ? "busyBom" : "busyWi").classList.toggle("hidden", !on);
+    }
+
+    function applyFolder(kind, folder, fileList) {
+      showError("");
+      const filesKey = kind === "bom" ? "bomFiles" : "wiFiles";
+      const pathEl = $(kind === "bom" ? "bomPath" : "wiPath");
+      if (folder) {
+        state[filesKey] = null;
+        pathEl.value = folder;
+        runCompare();
+        return;
+      }
+      const files = fileList ? namesFromFileList(fileList) : [];
+      if (files.length) {
+        state[filesKey] = files;
+        pathEl.value = folderLabel(fileList) || pathEl.value;
+        runCompare();
+        return;
+      }
+      showError("No se pudo leer esa carpeta. Arrástrala desde el Explorador o pega la ruta.");
+      pathEl.focus();
+    }
+
+    let picking = false;
+    async function pickFolder(kind, ev) {
+      if (picking) return;
+      picking = true;
+      const title = kind === "bom" ? "Carpeta de BOM" : "Carpeta de instrucciones (WI)";
+      const initial = $(kind === "bom" ? "bomPath" : "wiPath").value.trim();
+      try {
+        const data = await api("/api/pick-folder", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title,
+            initial,
+            x: ev && ev.screenX,
+            y: ev && ev.screenY,
+          }),
+        });
+        if (data.path) applyFolder(kind, data.path, null);
+      } catch (err) {
+        showError(err.message);
+      } finally {
+        picking = false;
+      }
+    }
+
+    function bindDrop(kind, dropId) {
+      const drop = $(dropId);
+      const allow = (ev) => {
+        ev.preventDefault();
+        ev.stopPropagation();
+        if (ev.dataTransfer) ev.dataTransfer.dropEffect = "copy";
+        drop.classList.add("over");
+      };
+      drop.onclick = (ev) => pickFolder(kind, ev);
+      drop.addEventListener("dragenter", allow);
+      drop.addEventListener("dragover", allow);
+      drop.addEventListener("dragleave", () => drop.classList.remove("over"));
+      drop.addEventListener("drop", (ev) => {
+        ev.preventDefault();
+        ev.stopPropagation();
+        drop.classList.remove("over");
+        applyFolder(kind, folderFromDataTransfer(ev.dataTransfer), ev.dataTransfer.files);
+      });
+    }
+
+    bindDrop("bom", "dropBom");
+    bindDrop("wi", "dropWi");
+
+    async function runCompare() {
+      const bom = $("bomPath").value.trim();
+      const wi = $("wiPath").value.trim();
+      if ((!bom && !state.bomFiles) || (!wi && !state.wiFiles)) {
+        state.result = null;
+        $("results").classList.add("hidden");
+        return;
+      }
+      showError("");
+      $("btnCompare").disabled = true;
+      setBusy("bom", true);
+      setBusy("wi", true);
+      try {
+        const data = await api("/api/compare", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            bom,
+            wi,
+            bom_files: state.bomFiles,
+            wi_files: state.wiFiles,
+            ignorar_mayusculas: true,
+          }),
+        });
+        state.result = data;
+        state.tab = "faltan";
+        $("results").classList.remove("hidden");
+        renderResult();
+      } catch (err) {
+        showError(err.message);
+      } finally {
+        $("btnCompare").disabled = false;
+        setBusy("bom", false);
+        setBusy("wi", false);
+      }
+    }
+    $("btnCompare").onclick = runCompare;
+    ["bomPath", "wiPath"].forEach((id) => {
+      $(id).addEventListener("keydown", (ev) => {
+        if (ev.key === "Enter") runCompare();
+      });
+      $(id).addEventListener("input", () => {
+        if (id === "bomPath") state.bomFiles = null;
+        else state.wiFiles = null;
+      });
+    });
+
+    function selectTab(tab) {
+      state.tab = tab;
+      document.querySelectorAll("#tabs button").forEach((b) => b.classList.toggle("on", b.dataset.tab === tab));
+      document.querySelectorAll(".stat").forEach((s) => s.classList.toggle("on", s.dataset.tab === tab));
+      renderGrid();
+    }
+
+    function renderResult() {
+      const r = state.result;
+      const s = r.stats;
+      $("stats").innerHTML = [
+        ["faltan", s.faltan, "Faltan WI", ""],
+        ["coinciden", s.coinciden, "Completas", ""],
+        ["sobran", s.sobran, "WI sin BOM", "warn"],
+        ["sin_reconocer", s.sin_reconocer, "No reconocidos", "warn"],
+      ].map(([tab, n, label, extra]) => `
+        <button class="stat ${extra} ${state.tab === tab ? "on" : ""}" data-tab="${tab}" type="button">
+          <b>${n}</b><span>${label}</span>
+        </button>
+      `).join("");
+      $("stats").querySelectorAll(".stat").forEach((btn) => {
+        btn.onclick = () => selectTab(btn.dataset.tab);
+      });
+      document.querySelectorAll("#tabs button").forEach((b) => b.classList.toggle("on", b.dataset.tab === state.tab));
+      const antiguas = s.n_bom_obsoletas
+        ? ` · BOM antiguas (subcarpeta): ${s.n_bom_obsoletas}`
+        : "";
+      const omit = s.omitidos && !s.n_bom_obsoletas
+        ? ` · Omitidos: ${s.omitidos}`
+        : (s.omitidos ? ` · Omitidos: ${s.omitidos}` : "");
+      $("summary").textContent =
+        `BOM vigentes: ${s.n_bom_archivos} → ${s.n_bom_refs} referencias · ` +
+        `WI: ${s.n_wi_archivos} → ${s.n_wi_refs}${antiguas}${omit}`;
+      renderGrid();
+    }
+
+    function names(list) {
+      return (list || []).join(" | ");
+    }
+
+    function fileSpans(row, kind) {
+      const files = row[kind === "bom" ? "bom_files" : "wi_files"];
+      if (files && files.length) {
+        return files.map((f) => {
+          const label = esc(f.archivo);
+          if (f.subcarpeta) {
+            return `<span class="sub" title="${esc(f.relativo || f.archivo)}">${label}</span>`;
+          }
+          return label;
+        }).join(" | ");
+      }
+      return esc(names(row[kind === "bom" ? "boms" : "wis"]));
+    }
+
+    function rowSearchText(row) {
+      const extras = [...(row.bom_files || []), ...(row.wi_files || [])]
+        .map((f) => `${f.archivo} ${f.relativo || ""}`)
+        .join(" ");
+      return `${row.referencia} ${names(row.boms)} ${names(row.wis)} ${extras}`;
+    }
+
+    function passFilter(text, q) {
+      if (!q) return true;
+      return text.toLowerCase().includes(q);
+    }
+
+    function renderGrid() {
+      const r = state.result;
+      if (!r) return;
+      const q = ($("search").value || "").trim().toLowerCase();
+      const tab = state.tab;
+      const titles = {
+        faltan: "Faltan WI",
+        coinciden: "Completas",
+        sobran: "WI sin BOM",
+        sin_reconocer: "No reconocidos",
+      };
+      $("printBanner").textContent = titles[tab] || tab;
+
+      let html = "";
+      if (tab === "sin_reconocer") {
+        const bom = (r.bom_no_reconocidos || []).filter((h) =>
+          passFilter(`${h.archivo} ${h.limpio}`, q)
+        );
+        const wi = (r.wi_no_reconocidas || []).filter((h) =>
+          passFilter(`${h.archivo} ${h.limpio}`, q)
+        );
+        html = `<thead><tr><th>Tipo</th><th>Archivo</th><th>Nombre limpio</th></tr></thead><tbody>`;
+        if (!bom.length && !wi.length) {
+          html += `<tr><td class="muted" colspan="3">Nada en esta pestaña</td></tr>`;
+        }
+        bom.forEach((h) => {
+          html += `<tr><td>BOM</td><td class="mono">${esc(h.archivo)}</td><td class="muted">${esc(h.limpio)}</td></tr>`;
+        });
+        wi.forEach((h) => {
+          html += `<tr><td>WI</td><td class="mono">${esc(h.archivo)}</td><td class="muted">${esc(h.limpio)}</td></tr>`;
+        });
+        html += `</tbody>`;
+      } else {
+        const rows = (r[tab] || []).filter((row) =>
+          passFilter(rowSearchText(row), q)
+        );
+        const showBom = tab !== "sobran";
+        const showWi = tab !== "faltan";
+        html = `<thead><tr><th>Referencia</th>`;
+        if (showBom) html += `<th>BOM</th>`;
+        if (showWi) html += `<th>WI</th>`;
+        html += `</tr></thead><tbody>`;
+        if (!rows.length) {
+          const cols = 1 + (showBom ? 1 : 0) + (showWi ? 1 : 0);
+          html += `<tr><td class="muted" colspan="${cols}">Nada en esta pestaña</td></tr>`;
+        }
+        rows.forEach((row) => {
+          html += `<tr><td class="mono">${esc(row.referencia)}</td>`;
+          if (showBom) html += `<td>${fileSpans(row, "bom")}</td>`;
+          if (showWi) html += `<td>${fileSpans(row, "wi")}</td>`;
+          html += `</tr>`;
+        });
+        html += `</tbody>`;
+      }
+      $("grid").innerHTML = html;
+    }
+
+    function esc(value) {
+      return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    document.querySelectorAll("#tabs button").forEach((btn) => {
+      btn.onclick = () => selectTab(btn.dataset.tab);
+    });
+    $("search").oninput = renderGrid;
+    $("btnPrint").onclick = () => window.print();
+    $("btnExcel").onclick = async () => {
+      showError("");
+      try {
+        const res = await fetch("/api/download");
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.error || res.statusText);
+        }
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = "instrucciones_faltantes.xlsx";
+        link.click();
+        URL.revokeObjectURL(url);
+      } catch (err) {
+        showError(err.message);
+      }
+    };
+
+    async function loadConfig() {
+      try {
+        const cfg = await api("/api/config");
+        if (cfg.bom) $("bomPath").value = cfg.bom;
+        if (cfg.wi) $("wiPath").value = cfg.wi;
+        if ($("bomPath").value.trim() && $("wiPath").value.trim()) runCompare();
+      } catch (_) { /* primera vez */ }
+    }
+    loadConfig();
+  </script>
+</body>
+</html>

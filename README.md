@@ -1,24 +1,30 @@
 # Comparador_DOC
 
-Compara una carpeta de listas de materiales (BOM) con una de instrucciones de fabricación y dice **qué referencias tienen BOM pero no tienen instrucción**.
+Herramienta local para ver **qué instrucciones de fabricación faltan** frente a las BOM de una carpeta.
 
-No abre el contenido de los Excel ni de los Word: cruza solo por el **nombre de archivo**.
+Elige dos carpetas: una con Excel de BOM y otra con instrucciones (Word o PDF). El programa **no abre esos archivos**; solo lee los nombres, limpia la referencia y cruza.
 
-Es distinto del **Comparador de BOM** (componentes): aquel lee el interior de los Excel; este cruza documentación.
+No es el comparador de componentes. Aquel entra en el Excel y compara piezas. Este solo responde: esta placa tiene BOM, ¿tiene también instrucción?
 
 ---
 
-## Arranque
+## En otro PC
 
-Con Python instalado:
+Copia la carpeta `dist\Comparador_DOC` y abre `Comparador_DOC.exe`. No hace falta Python.
+
+Para generar el exe en un PC con Python: `build_exe.bat`.
+
+---
+
+## En este PC (con Python)
 
 ```bat
 abrir_comparador.bat
 ```
 
-o `python -m wi_compare --web`. Se abre `http://127.0.0.1:8770` (si el puerto está ocupado, prueba el siguiente).
+Se abre el navegador en `http://127.0.0.1:8770`.
 
-Por consola:
+Desde consola, sin interfaz:
 
 ```bat
 python -m wi_compare --bom "D:\BOMs" --wi "D:\Instrucciones" --out faltan.xlsx
@@ -26,48 +32,38 @@ python -m wi_compare --bom "D:\BOMs" --wi "D:\Instrucciones" --out faltan.xlsx
 
 ---
 
-## Ejecutable (PC sin Python)
+## Cómo se usa
 
-1. En un PC con Python: `build_exe.bat`.
-2. Copia **toda** la carpeta `dist\Comparador_DOC` al otro equipo.
-3. Abre `Comparador_DOC.exe`.
+1. Indica la carpeta de BOM y la de instrucciones: pega la ruta, arrástrala o pulsa el recuadro.
+2. **Comparar**. Si las rutas ya estaban guardadas, se lanza solo al abrir.
+3. Mira primero **Faltan WI**.
+4. **Descargar Excel** o **Imprimir** la pestaña que tengas abierta.
 
-No hace falta instalar Python en el PC de destino.
+No se suben ni se copian documentos. El filtro de la tabla solo busca en el resultado, no cambia el cruce.
 
----
-
-## Uso
-
-1. Indica las dos carpetas (pega la ruta, arrástrala desde el Explorador o pulsa el recuadro para elegirla). **No se copian archivos**: solo se leen los nombres.
-2. Al tener las dos, pulsa **Comparar** (si ya hay rutas guardadas, se compara al abrir).
-3. La pestaña **Faltan WI** es la respuesta principal.
-4. **Descargar Excel** exporta todas las pestañas. **Imprimir** saca la pestaña visible.
-
-| Pestaña | Criterio |
+| Resultado | Significado |
 | --- | --- |
-| **Faltan WI** | Hay BOM de esa referencia y no hay instrucción. |
-| **Completas** | Hay BOM e instrucción. |
-| **WI sin BOM** | Hay instrucción y no hay BOM. |
-| **No reconocidos** | El nombre no se pudo convertir en referencia. |
-
-El recuadro **Filtrar referencia o archivo** solo acota la tabla ya calculada.
+| Faltan WI | Hay BOM y no hay instrucción |
+| Completas | Hay BOM e instrucción |
+| WI sin BOM | Hay instrucción y no hay BOM |
+| No reconocidos | El nombre no se pudo convertir en referencia |
 
 ---
 
-## Cómo se cruza el nombre
+## Cómo se obtiene la referencia
 
-Se quitan prefijos habituales (`BOM`, `CAD`, `NAV`, `CE`, `WI`, `INST`, `PCB`, `ASSY`), fechas al final o en medio del nombre, y el texto que vaya detrás de esa fecha. Los separadores (`_`, `-`, espacios) se unifican. Las mayúsculas no cuentan.
+Del nombre se quitan prefijos habituales (`BOM`, `CAD`, `NAV`, `CE`, `WI`, `INST`, `PCB`, `ASSY`), fechas y el texto que vaya detrás de la fecha. `_`, `-` y espacios se tratan igual. Mayúsculas y minúsculas no importan.
 
-Ejemplo genérico:
+Así coinciden, por ejemplo:
 
 - `BOM CAD CE-PRODUCTO-001_2024-03-01.xlsx`
 - `CE-PRODUCTO-001 Instrucción de fabricación.docx`
 
-ambos acaban en la clave `PRODUCTO-001`.
+ambos como `PRODUCTO-001`.
 
-También vale una instrucción corta (`CE-PRODUCTO-001.docx`) si el nombre lleva un código de producto.
+Una instrucción corta (`CE-PRODUCTO-001.docx`) también entra si el nombre parece un código de producto.
 
-Se omiten archivos cuyo nombre contiene `coordenadas`. Varios BOM de la misma placa se agrupan en una sola referencia.
+Se ignoran archivos con `coordenadas` en el nombre. Varios BOM de la misma placa se agrupan en una referencia.
 
 ---
 
@@ -75,30 +71,20 @@ Se omiten archivos cuyo nombre contiene `coordenadas`. Varios BOM de la misma pl
 
 Se recorren siempre.
 
-- Una **BOM en subcarpeta** se considera versión antigua: no exige instrucción y no entra en Faltan WI.
-- Una **instrucción en subcarpeta** sí vale si la referencia coincide. En Completas ese archivo se marca en naranja.
+- BOM en subcarpeta = versión antigua. No exige instrucción y no aparece en Faltan WI.
+- Instrucción en subcarpeta = válida si la referencia coincide. En Completas se marca en naranja.
 
 ---
 
-## Excel de salida
-
-Hojas **Faltan WI**, **Completas**, **WI sin BOM** y **No reconocidos**, más un resumen.
-
----
-
-## Proyecto
+## Desarrollo
 
 ```
-wi_compare/            Aplicacion: nombres, cruce, API e interfaz
+wi_compare/            Logica, API e interfaz
 tests/                 Pruebas
-packaging/             Receta PyInstaller y arranque del .exe
-.github/workflows/     CI de tests
-pyproject.toml         Empaquetado y herramientas
-abrir_comparador.bat   Arranque web
-build_exe.bat          Empaquetado
+packaging/             Receta del exe
+.github/workflows/     Tests en cada push
+pyproject.toml
 ```
-
-La sesion web vive en el propio PC. API local en `127.0.0.1` (sin autenticacion): `/api/compare`, `/api/download`, `/api/pick-folder`.
 
 ```bat
 python -m pip install -e ".[dev]"
@@ -106,4 +92,4 @@ python -m pytest
 python -m wi_compare --web
 ```
 
-`dist/` y `build/` no van al repositorio.
+`dist/` y `build/` no se suben al repositorio.

@@ -10,7 +10,9 @@ No es el comparador de componentes. Aquel entra en el Excel y compara piezas. Es
 
 ## En otro PC
 
-Copia la carpeta `dist\Comparador_DOC` y abre `Comparador_DOC.exe`. No hace falta Python.
+En el repositorio está `dist/Comparador_DOC.zip`. Descomprímelo y abre `Comparador_DOC.exe`. No hace falta Python.
+
+También puedes copiar la carpeta `dist\Comparador_DOC` si ya la tienes generada aquí.
 
 Para generar el exe en un PC con Python: `build_exe.bat`.
 
@@ -92,4 +94,4 @@ python -m pytest
 python -m wi_compare --web
 ```
 
-`dist/` y `build/` no se suben al repositorio.
+`build/` no se sube. De `dist/` solo va el zip `Comparador_DOC.zip`.

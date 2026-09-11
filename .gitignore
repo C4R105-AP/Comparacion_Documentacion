@@ -5,6 +5,7 @@ __pycache__/
 .eggs/
 build/
 dist/*
+!dist/Comparador_DOC.zip
 
 .venv/
 venv/
